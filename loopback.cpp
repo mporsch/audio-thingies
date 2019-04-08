@@ -7,8 +7,10 @@
 #include <vector>
 
 namespace consts {
+  using sample_format_type = float; // should match audioSpecFormat
+
   static const int audioSpecFrequency = 48000;
-  static const auto audioSpecFormat = AUDIO_F32;
+  static const SDL_AudioFormat audioSpecFormat = AUDIO_F32SYS; // should match sample_format_type
   static const uint8_t audioSpecChannels = 1;
   static const uint8_t audioSpecSilence = 0;
   static const uint16_t audioSpecSamples = 4096;
@@ -16,16 +18,20 @@ namespace consts {
   static const uint32_t audioSpecSize = 0;
 } // namespace consts
 
+template<typename T>
 struct Recording
 {
-  std::list<std::vector<uint8_t>> storage;
+  std::list<std::vector<T>> storage;
 
   void push(const uint8_t* stream, int len)
   {
-    storage.emplace_back(std::vector<uint8_t>(stream, stream + len));
+    const auto first = reinterpret_cast<const T*>(stream);
+    const auto last = reinterpret_cast<const T*>(stream + len);
+
+    storage.emplace_back(first, last);
   }
 
-  std::vector<uint8_t> pop()
+  std::vector<T> pop()
   {
     if (storage.empty()) {
       return {};
@@ -46,7 +52,7 @@ struct Recording
   {
     auto recording = reinterpret_cast<Recording*>(userdata);
     auto streamData = recording->pop();
-    memcpy(stream, streamData.data(), std::min(streamData.size(), static_cast<size_t>(len)));
+    memcpy(stream, streamData.data(), std::min(streamData.size() * sizeof(T), static_cast<size_t>(len)));
   }
 };
 
@@ -60,13 +66,14 @@ void printAudioDevices(int isCapture)
   std::cout << "\n";
 }
 
-Recording record()
+template<typename T>
+Recording<T> record()
 {
   static const auto isCapture = SDL_TRUE;
 
   printAudioDevices(isCapture);
 
-  Recording rec;
+  Recording<T> rec;
 
   const SDL_AudioSpec want = {
     consts::audioSpecFrequency,  /**< DSP frequency -- samples per second */
@@ -76,7 +83,7 @@ Recording record()
     consts::audioSpecSamples,    /**< Audio buffer size in sample FRAMES (total samples divided by channel count) */
     consts::audioSpecPadding,    /**< Necessary for some compile environments */
     consts::audioSpecSize,       /**< Audio buffer size in bytes (calculated) */
-    Recording::record,           /**< Callback that feeds the audio device (NULL to use SDL_QueueAudio()). */
+    Recording<T>::record,        /**< Callback that feeds the audio device (NULL to use SDL_QueueAudio()). */
     &rec                         /**< Userdata passed to callback (ignored for NULL callbacks). */
   };
 
@@ -100,7 +107,8 @@ Recording record()
   return rec;
 }
 
-void play(Recording rec)
+template<typename T>
+void play(Recording<T> rec)
 {
   static const auto isCapture = SDL_FALSE;
 
@@ -114,7 +122,7 @@ void play(Recording rec)
     consts::audioSpecSamples,    /**< Audio buffer size in sample FRAMES (total samples divided by channel count) */
     consts::audioSpecPadding,    /**< Necessary for some compile environments */
     consts::audioSpecSize,       /**< Audio buffer size in bytes (calculated) */
-    Recording::play,             /**< Callback that feeds the audio device (NULL to use SDL_QueueAudio()). */
+    Recording<T>::play,          /**< Callback that feeds the audio device (NULL to use SDL_QueueAudio()). */
     &rec                         /**< Userdata passed to callback (ignored for NULL callbacks). */
   };
 
@@ -145,7 +153,7 @@ int main(int, char**)
     return EXIT_FAILURE;
   }
 
-  auto rec = record();
+  auto rec = record<consts::sample_format_type>();
   play(std::move(rec));
 
   SDL_Quit();

@@ -27,9 +27,13 @@ struct Recording
 
   std::vector<uint8_t> pop()
   {
-    auto tmp = std::move(storage.front());
+    if (storage.empty()) {
+      return {};
+    }
+
+    auto ret = std::move(storage.front());
     storage.pop_front();
-    return tmp;
+    return ret;
   }
 
   static void record(void* userdata, uint8_t* stream, int len)

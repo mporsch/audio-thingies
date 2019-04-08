@@ -10,3 +10,9 @@ target_link_libraries(echo
   #mingw32
   ${SDL2_LIBRARIES}
 )
+
+add_executable (loopback loopback.cpp)
+target_link_libraries(loopback
+  #mingw32
+  ${SDL2_LIBRARIES}
+)

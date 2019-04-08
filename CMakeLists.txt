@@ -5,8 +5,8 @@ project (audio-thingies CXX)
 find_package(SDL2 REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS})
 
-add_executable (loopback loopback.cpp)
-target_link_libraries(loopback
+add_executable (echo echo.cpp)
+target_link_libraries(echo
   #mingw32
   ${SDL2_LIBRARIES}
 )

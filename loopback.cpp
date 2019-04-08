@@ -16,6 +16,12 @@ namespace consts {
   static const uint16_t audioSpecSamples = 4096;
   static const uint16_t audioSpecPadding = 0;
   static const uint32_t audioSpecSize = 0;
+
+  static const int allowedAudioChange = 0;
+
+  static const auto pauseDisable = 0;
+
+  static const uint32_t recordLengthMsec = 5000;
 } // namespace consts
 
 template<typename T>
@@ -63,6 +69,11 @@ struct Recording
   }
 };
 
+bool isValid(SDL_AudioDeviceID deviceId)
+{
+  return (deviceId >= 2); // see SDL_OpenAudioDevice()
+}
+
 void printAudioDevices(int isCapture)
 {
   const int numAudioDevices = SDL_GetNumAudioDevices(isCapture);
@@ -95,20 +106,15 @@ Recording<T> record()
   };
 
   SDL_AudioSpec have;
-  const SDL_AudioDeviceID dev = SDL_OpenAudioDevice(nullptr, isCapture, &want, &have, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
-  if (dev == 0) {
+  const auto deviceId = SDL_OpenAudioDevice(nullptr, isCapture, &want, &have, consts::allowedAudioChange);
+  if (!isValid(deviceId)) {
     std::cerr << "Failed to open audio: " << SDL_GetError() << "\n";
   } else {
-    if (have.format != want.format) { /* we let this one thing change. */
-      std::cerr << "Failed to get Float32 audio format\n";
-    }
+    SDL_PauseAudioDevice(deviceId, consts::pauseDisable);
 
-    static const auto pauseDisable = 0;
-    SDL_PauseAudioDevice(dev, pauseDisable);
+    SDL_Delay(consts::recordLengthMsec);
 
-    SDL_Delay(5000); /* let the audio callback play some sound for 5 seconds. */
-
-    SDL_CloseAudioDevice(dev);
+    SDL_CloseAudioDevice(deviceId);
   }
 
   return rec;
@@ -134,20 +140,15 @@ void play(Recording<T> rec)
   };
 
   SDL_AudioSpec have;
-  const SDL_AudioDeviceID dev = SDL_OpenAudioDevice(nullptr, isCapture, &want, &have, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
-  if (dev == 0) {
+  const auto deviceId = SDL_OpenAudioDevice(nullptr, isCapture, &want, &have, consts::allowedAudioChange);
+  if (!isValid(deviceId)) {
     std::cerr << "Failed to open audio: " << SDL_GetError() << "\n";
   } else {
-    if (have.format != want.format) { /* we let this one thing change. */
-      std::cerr << "Failed to get Float32 audio format\n";
-    }
+    SDL_PauseAudioDevice(deviceId, consts::pauseDisable);
 
-    static const auto pauseDisable = 0;
-    SDL_PauseAudioDevice(dev, pauseDisable);
+    SDL_Delay(consts::recordLengthMsec);
 
-    SDL_Delay(5000); /* let the audio callback play some sound for 5 seconds. */
-
-    SDL_CloseAudioDevice(dev);
+    SDL_CloseAudioDevice(deviceId);
   }
 }
 

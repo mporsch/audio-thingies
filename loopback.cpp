@@ -44,15 +44,22 @@ struct Recording
 
   static void record(void* userdata, uint8_t* stream, int len)
   {
-    auto recording = reinterpret_cast<Recording*>(userdata);
-    recording->push(stream, len);
+    auto instance = reinterpret_cast<Recording*>(userdata);
+    instance->push(stream, len);
   }
 
   static void play(void* userdata, uint8_t* stream, int len)
   {
-    auto recording = reinterpret_cast<Recording*>(userdata);
-    auto streamData = recording->pop();
-    memcpy(stream, streamData.data(), std::min(streamData.size() * sizeof(T), static_cast<size_t>(len)));
+    auto instance = reinterpret_cast<Recording*>(userdata);
+    auto samples = instance->pop();
+
+    const auto first = reinterpret_cast<uint8_t*>(samples.data());
+    const size_t byteSize = samples.size() * sizeof(T);
+
+    const auto writeByteSize = std::min(byteSize, static_cast<size_t>(len));
+
+    memcpy(stream, first, writeByteSize);
+    memset(stream + writeByteSize, 0, static_cast<size_t>(len) - writeByteSize);
   }
 };
 

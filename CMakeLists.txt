@@ -11,7 +11,7 @@ target_link_libraries(echo
   ${SDL2_LIBRARIES}
 )
 
-add_executable (loopback loopback.cpp)
+add_executable (loopback loopback.cpp AudioGuard.cpp AudioGuard.h)
 target_link_libraries(loopback
   #mingw32
   ${SDL2_LIBRARIES}

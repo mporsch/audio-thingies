@@ -1,3 +1,5 @@
+#include "AudioGuard.h"
+
 #define SDL_MAIN_HANDLED
 #include "SDL2/SDL.h"
 
@@ -16,7 +18,7 @@ namespace consts {
 
   static const int allowedAudioChange = 0;
 
-  static const auto pauseDisable = 0;
+  static const int pauseDisable = 0;
 
   static const uint32_t recordLengthMsec = 5000;
 } // namespace consts
@@ -38,7 +40,7 @@ void printAudioDevices(int isCapture)
 
 SDL_AudioDeviceID setupPlayDevice()
 {
-  static const auto isCapture = SDL_FALSE;
+  static const int isCapture = SDL_FALSE;
 
   printAudioDevices(isCapture);
 
@@ -72,7 +74,7 @@ void captureCallback(void* userdata, uint8_t* stream, int len)
 
 SDL_AudioDeviceID setupCaptureDevice(SDL_AudioDeviceID* playDeviceId)
 {
-  static const auto isCapture = SDL_TRUE;
+  static const int isCapture = SDL_TRUE;
 
   printAudioDevices(isCapture);
 
@@ -98,10 +100,7 @@ SDL_AudioDeviceID setupCaptureDevice(SDL_AudioDeviceID* playDeviceId)
 
 int main(int, char**)
 try {
-  std::cout << "SDL_GetRevision(): " << SDL_GetRevision() << "\n";
-
-  if (SDL_Init(SDL_INIT_AUDIO))
-    throw std::runtime_error(std::string("Failed to initialize SDL: ") + SDL_GetError());
+  AudioGuard audioGuard;
 
   auto playDeviceId = setupPlayDevice();
   const auto captureDeviceId = setupCaptureDevice(&playDeviceId);
@@ -113,8 +112,6 @@ try {
 
   SDL_CloseAudioDevice(captureDeviceId);
   SDL_CloseAudioDevice(playDeviceId);
-
-  SDL_Quit();
 
   return EXIT_SUCCESS;
 } catch(const std::exception& e) {

@@ -16,3 +16,8 @@ target_link_libraries(loopback
   #mingw32
   ${SDL2_LIBRARIES}
 )
+
+add_executable (sweep sweep.cpp AudioDevice.h AudioDevice_impl.h AudioGuard.cpp AudioGuard.h)
+target_link_libraries(sweep
+  ${SDL2_LIBRARIES}
+)

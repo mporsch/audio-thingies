@@ -52,6 +52,13 @@ void Sequence<T>::push(const uint8_t* stream, int len)
   const auto first = reinterpret_cast<const T*>(stream);
   const auto last = reinterpret_cast<const T*>(stream + len);
 
+  push(first, last);
+}
+
+template<typename T>
+template<typename FwdIt>
+void Sequence<T>::push(FwdIt first, FwdIt last)
+{
   storage.emplace_back(first, last);
 }
 

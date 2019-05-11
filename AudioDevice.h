@@ -21,6 +21,9 @@ struct Sequence
 
   void push(const uint8_t* stream, int len);
 
+  template<typename FwdIt>
+  void push(FwdIt first, FwdIt last);
+
   std::vector<T> pop();
 
   std::chrono::milliseconds length() const;

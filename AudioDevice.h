@@ -24,6 +24,8 @@ struct Sequence
   template<typename FwdIt>
   void push(FwdIt first, FwdIt last);
 
+  void push(std::vector<T> sample);
+
   std::vector<T> pop();
 
   std::chrono::milliseconds length() const;

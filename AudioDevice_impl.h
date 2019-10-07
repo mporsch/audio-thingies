@@ -40,9 +40,9 @@ namespace detail {
     const int numAudioDevices = SDL_GetNumAudioDevices(isCapture);
 
     std::cout << "Available audio " << (isCapture ? "capture" : "playback") << " devices:\n";
-    for(int i = 0; i < numAudioDevices; ++i)
-      std::cout << SDL_GetAudioDeviceName(i, isCapture) << "\n";
-    std::cout << "\n";
+    for(int i = 0; i < numAudioDevices; ++i) {
+      std::cout << SDL_GetAudioDeviceName(i, isCapture) << std::endl;
+    }
   }
 } // namespace detail
 
@@ -60,6 +60,12 @@ template<typename FwdIt>
 void Sequence<T>::push(FwdIt first, FwdIt last)
 {
   storage.emplace_back(first, last);
+}
+
+template<typename T>
+void Sequence<T>::push(std::vector<T> samples)
+{
+  storage.emplace_back(std::move(samples));
 }
 
 template<typename T>
@@ -114,6 +120,8 @@ AudioDeviceCapture<T>::AudioDeviceCapture(int sampleRate,
 template<typename T>
 Sequence<T> AudioDeviceCapture<T>::record(uint32_t lengthMsec)
 {
+  std::cout << "recording for " << lengthMsec << "ms ..." << std::endl;
+
   SDL_PauseAudioDevice(deviceId_, detail::pauseDisable);
 
   // block here for the duration of the recording
@@ -169,6 +177,8 @@ template<typename T>
 void AudioDevicePlayback<T>::play(Sequence<T> seq)
 {
   seq_ = std::move(seq);
+
+  std::cout << "playback for " << seq_.length().count() << "ms ..." << std::endl;
 
   SDL_PauseAudioDevice(deviceId_, detail::pauseDisable);
 

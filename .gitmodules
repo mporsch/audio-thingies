@@ -1,0 +1,4 @@
+[submodule "kissfft"]
+	path = kissfft
+	url = https://github.com/mborgerding/kissfft.git
+	branch = master

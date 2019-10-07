@@ -9,10 +9,38 @@ namespace consts {
   static const uint8_t audioSpecChannels = 1;
   static const uint16_t audioSpecSamples = 4096;
 
-  static const auto sampleDuration = 1 / static_cast<float>(audioSpecFrequency);
+  // sample duration
+  static const float dT = 1 / static_cast<float>(audioSpecFrequency);
 
+  // sweep 20Hz ... 20kHz
+  static const float fMin = 20.f;
+  static const float fMax = 20000.f;
   static const float sweepFactor = 1.1f;
 } // namespace consts
+
+Sequence<float> sweepNaive()
+{
+  Sequence<float> seq;
+  seq.sampleRate = consts::audioSpecFrequency;
+  seq.sampleSize = consts::audioSpecSamples;
+  seq.channelCount = consts::audioSpecChannels;
+
+  // time accumulator
+  float t = 0.f;
+
+  float values[consts::audioSpecSamples];
+
+  for(float freq = consts::fMin; freq < consts::fMax; freq *= consts::sweepFactor) {
+    for (auto&& value : values) {
+      value = std::sin(2 * static_cast<float>(M_PI) * freq * t);
+      t += consts::dT;
+    }
+
+    seq.push(std::begin(values), std::end(values));
+  }
+
+  return seq;
+}
 
 Sequence<float> sweepTimeAccumulator()
 {
@@ -26,21 +54,21 @@ Sequence<float> sweepTimeAccumulator()
 
   // phase continuity offset
   // recalculated on each frequency update to guarantee continuous phase and smooth audio transition
+  // inspired by https://dsp.stackexchange.com/q/971
   float phiOffset = 0.f;
 
   float values[consts::audioSpecSamples];
 
-  // sweep 20Hz ... 20kHz
-  float freq = 20.f;
-  while (freq < 20000.f)
+  float freq = consts::fMin;
+  while (freq < consts::fMax)
   {
     // cache the last phi of this frequency
     float phi = 0.f;
 
     for (auto&& value : values) {
-      phi = freq * t + phiOffset;
+      phi = 2 * static_cast<float>(M_PI) * freq * t + phiOffset;
       value = std::sin(phi);
-      t += consts::sampleDuration;
+      t += consts::dT;
     }
 
     seq.push(std::begin(values), std::end(values));
@@ -48,7 +76,7 @@ Sequence<float> sweepTimeAccumulator()
     const auto nextFreq = freq * consts::sweepFactor;
 
     // recalculate phase continuity offset
-    phiOffset = phi - nextFreq * (t - consts::sampleDuration);
+    phiOffset = phi - nextFreq * (t - consts::dT);
 
     freq = nextFreq;
   }
@@ -70,9 +98,8 @@ Sequence<float> sweepPhaseAccumulator()
 
   float values[consts::audioSpecSamples];
 
-  // sweep 20Hz ... 20kHz
-  for(float freq = 20.f; freq < 20000.f; freq *= consts::sweepFactor) {
-    const auto deltaPhi = freq * consts::sampleDuration;
+  for(float freq = consts::fMin; freq < consts::fMax; freq *= consts::sweepFactor) {
+    const auto deltaPhi = 2 * static_cast<float>(M_PI) * freq * consts::dT;
 
     for (auto&& value : values) {
       value = std::sin(phi);
@@ -89,10 +116,13 @@ int main(int, char**)
 try {
   AudioDevicePlayback<float> playback(consts::audioSpecFrequency, consts::audioSpecChannels, consts::audioSpecSamples);
 
-  std::cout << "sweep generated using time accumulator...\n";
+  std::cout << "simple sweep..." << std::endl;
+  playback.play(sweepNaive());
+
+  std::cout << "sweep generated using time accumulator..." << std::endl;
   playback.play(sweepTimeAccumulator());
 
-  std::cout << "sweep generated using phase accumulator...\n";
+  std::cout << "sweep generated using phase accumulator..." << std::endl;
   playback.play(sweepPhaseAccumulator());
 
   return EXIT_SUCCESS;

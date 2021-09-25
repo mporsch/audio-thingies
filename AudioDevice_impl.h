@@ -65,7 +65,7 @@ void Sequence<T>::push(FwdIt first, FwdIt last)
 }
 
 template<typename T>
-void Sequence<T>::push(std::vector<T> samples)
+void Sequence<T>::push(Samples samples)
 {
   storage.emplace_back(std::move(samples));
 }
@@ -73,7 +73,7 @@ void Sequence<T>::push(std::vector<T> samples)
 template<typename T>
 std::vector<T> Sequence<T>::pop()
 {
-  if (storage.empty()) {
+  if(storage.empty()) {
     return {};
   }
 
@@ -83,7 +83,7 @@ std::vector<T> Sequence<T>::pop()
 }
 
 template<typename T>
-std::chrono::milliseconds Sequence<T>::length() const
+std::chrono::milliseconds Sequence<T>::duration() const
 {
   assert(metadata.sampleRate > 0);
   return std::chrono::milliseconds((storage.size() * metadata.sampleCount) / (metadata.sampleRate / 1000));
@@ -112,8 +112,14 @@ DeviceCapture<T>::DeviceCapture(const Metadata& metadata)
 
   SDL_AudioSpec have;
   deviceId_ = SDL_OpenAudioDevice(nullptr, isCapture, &want, &have, detail::allowedAudioChange);
-  if (!detail::isValid(deviceId_))
+  if(!detail::isValid(deviceId_))
     throw std::runtime_error(std::string("Failed to open audio: ") + SDL_GetError());
+}
+
+template<typename T>
+DeviceCapture<T>::~DeviceCapture()
+{
+  SDL_CloseAudioDevice(deviceId_);
 }
 
 template<typename T>
@@ -173,8 +179,14 @@ DevicePlayback<T>::DevicePlayback(const Metadata& metadata)
 
   SDL_AudioSpec have;
   deviceId_ = SDL_OpenAudioDevice(nullptr, isCapture, &want, &have, detail::allowedAudioChange);
-  if (!detail::isValid(deviceId_))
+  if(!detail::isValid(deviceId_))
     throw std::runtime_error(std::string("Failed to open audio: ") + SDL_GetError());
+}
+
+template<typename T>
+DevicePlayback<T>::~DevicePlayback()
+{
+  SDL_CloseAudioDevice(deviceId_);
 }
 
 template<typename T>
@@ -182,12 +194,12 @@ void DevicePlayback<T>::play(Sequence<T> seq)
 {
   seq_ = std::move(seq);
 
-  std::cout << "playback for " << seq_.length().count() << "ms ..." << std::endl;
+  std::cout << "playback for " << seq_.duration().count() << "ms ..." << std::endl;
 
   SDL_PauseAudioDevice(deviceId_, detail::pauseDisable);
 
   // block here for the duration of the playback
-  SDL_Delay(seq_.length().count());
+  SDL_Delay(seq_.duration().count());
 }
 
 template<typename T>
@@ -201,7 +213,7 @@ template<typename T>
 void DevicePlayback<T>::deviceCallback(uint8_t* stream, int len)
 {
   auto samples = seq_.pop();
-  if (samples.empty()) {
+  if(samples.empty()) {
     SDL_PauseAudioDevice(deviceId_, detail::pauseEnable);
     return;
   }

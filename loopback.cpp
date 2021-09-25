@@ -58,7 +58,7 @@ SDL_AudioDeviceID setupPlayDevice()
 
   SDL_AudioSpec have;
   const auto deviceId = SDL_OpenAudioDevice(nullptr, isCapture, &want, &have, consts::allowedAudioChange);
-  if (!isValid(deviceId))
+  if(!isValid(deviceId))
     throw std::runtime_error(std::string("Failed to open audio: ") + SDL_GetError());
 
   return deviceId;
@@ -68,7 +68,7 @@ void captureCallback(void* userdata, uint8_t* stream, int len)
 {
   auto playDeviceId = *reinterpret_cast<const SDL_AudioDeviceID*>(userdata);
 
-  if (SDL_QueueAudio(playDeviceId, stream, static_cast<uint32_t>(len)))
+  if(SDL_QueueAudio(playDeviceId, stream, static_cast<uint32_t>(len)))
     throw std::runtime_error(std::string("Failed to queue audio: ") + SDL_GetError());
 }
 
@@ -92,7 +92,7 @@ SDL_AudioDeviceID setupCaptureDevice(SDL_AudioDeviceID* playDeviceId)
 
   SDL_AudioSpec have;
   const auto deviceId = SDL_OpenAudioDevice(nullptr, isCapture, &want, &have, consts::allowedAudioChange);
-  if (!isValid(deviceId))
+  if(!isValid(deviceId))
     throw std::runtime_error(std::string("Failed to open audio: ") + SDL_GetError());
 
   return deviceId;

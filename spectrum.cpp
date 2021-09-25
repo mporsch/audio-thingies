@@ -26,7 +26,7 @@ audio::Sequence<float> sineSequence(float freq, std::chrono::seconds length)
   const auto sampleCount = seq.metadata.sampleRate * length.count() / seq.metadata.sampleCount;
   for(uint32_t i = 0U; i < sampleCount; ++i) {
     std::vector<float> values(seq.metadata.sampleCount);
-    for (auto&& value : values) {
+    for(auto&& value : values) {
       value = std::sin(2 * static_cast<float>(M_PI) * freq * t);
       t += dT;
     }
@@ -134,15 +134,15 @@ void analyze(const std::vector<float>& spectrum, const audio::Metadata& metadata
           [&](float lhs, float rhs) -> bool {
       const bool isRising = (lhs < rhs);
 
-      if (wasRising && !isRising) { // peak
+      if(wasRising && !isRising) { // peak
         wasRising = isRising;
         max = lhs;
-        if (max - min > thresh) {
+        if(max - min > thresh) {
           return true;
         }
-      } else if (!wasRising && isRising) { // valley
+      } else if(!wasRising && isRising) { // valley
         wasRising = isRising;
-        if (max - min > thresh)
+        if(max - min > thresh)
           min = lhs;
       }
       return false;

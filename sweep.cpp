@@ -26,7 +26,7 @@ audio::Sequence<float> sweepNaive()
   float values[consts::metadata.sampleCount];
 
   for(float freq = consts::fMin; freq < consts::fMax; freq *= consts::sweepFactor) {
-    for (auto&& value : values) {
+    for(auto&& value : values) {
       value = std::sin(2 * static_cast<float>(M_PI) * freq * t);
       t += consts::dT;
     }
@@ -57,7 +57,7 @@ audio::Sequence<float> sweepTimeAccumulator()
     // cache the last phi of this frequency
     float phi = 0.f;
 
-    for (auto&& value : values) {
+    for(auto&& value : values) {
       phi = 2 * static_cast<float>(M_PI) * freq * t + phiOffset;
       value = std::sin(phi);
       t += consts::dT;
@@ -90,7 +90,7 @@ audio::Sequence<float> sweepPhaseAccumulator()
   for(float freq = consts::fMin; freq < consts::fMax; freq *= consts::sweepFactor) {
     const auto deltaPhi = 2 * static_cast<float>(M_PI) * freq * consts::dT;
 
-    for (auto&& value : values) {
+    for(auto&& value : values) {
       value = std::sin(phi);
       phi += deltaPhi;
     }

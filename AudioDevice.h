@@ -23,19 +23,23 @@ struct Metadata
 template<typename T>
 struct Sequence
 {
-  Metadata metadata;
-  std::list<std::vector<T>> storage;
+  using Samples = std::vector<T>;
 
+  Metadata metadata; ///< constant sequence metadata the samples were recorded with
+  std::list<Samples> storage; ///< samples in capture groups
+
+  /// enqueue sample capture group
   void push(const uint8_t* stream, int len);
-
   template<typename FwdIt>
   void push(FwdIt first, FwdIt last);
+  void push(Samples samples);
 
-  void push(std::vector<T> sample);
-
+  /// get and remove front capture group
+  /// @return  filled capture group or empty if none remaining
   std::vector<T> pop();
 
-  std::chrono::milliseconds length() const;
+  /// determine playback length of all samples in recording
+  std::chrono::milliseconds duration() const;
 };
 
 template<typename T>
@@ -44,10 +48,12 @@ struct DeviceCapture
   DeviceCapture(const Metadata& metadata = Metadata());
   DeviceCapture(const DeviceCapture&) = delete;
   DeviceCapture(DeviceCapture&&) = delete;
+  ~DeviceCapture();
 
   Sequence<T> record(std::chrono::milliseconds length);
   Sequence<T> record(uint32_t lengthMsec);
 
+private:
   static void deviceCallback(void* userdata, uint8_t* stream, int len);
   void deviceCallback(uint8_t* stream, int len);
 
@@ -63,9 +69,11 @@ struct DevicePlayback
   DevicePlayback(const Metadata& metadata = Metadata());
   DevicePlayback(const DevicePlayback&) = delete;
   DevicePlayback(DevicePlayback&&) = delete;
+  ~DevicePlayback();
 
   void play(Sequence<T> seq);
 
+private:
   static void deviceCallback(void* userdata, uint8_t* stream, int len);
   void deviceCallback(uint8_t* stream, int len);
 

@@ -16,7 +16,7 @@ SdlGuard::SdlGuard()
 
   if(m_instanceCount == 0U) {
     // we are the first instance -> initialize
-    if (SDL_Init(SDL_INIT_AUDIO)) {
+    if(SDL_Init(SDL_INIT_AUDIO)) {
       throw std::runtime_error(std::string("Failed to initialize SDL: ") + SDL_GetError());
     }
   }

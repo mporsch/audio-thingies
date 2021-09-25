@@ -5,12 +5,10 @@
 #include <iostream>
 
 namespace consts {
-  static const int audioSpecFrequency = 48000;
-  static const uint8_t audioSpecChannels = 1;
-  static const uint16_t audioSpecSamples = 4096;
+  constexpr audio::Metadata metadata;
 
   // sample duration
-  static const float dT = 1 / static_cast<float>(audioSpecFrequency);
+  static const float dT = 1 / static_cast<float>(metadata.sampleRate);
 
   // sweep 20Hz ... 20kHz
   static const float fMin = 20.f;
@@ -18,17 +16,14 @@ namespace consts {
   static const float sweepFactor = 1.1f;
 } // namespace consts
 
-Sequence<float> sweepNaive()
+audio::Sequence<float> sweepNaive()
 {
-  Sequence<float> seq;
-  seq.sampleRate = consts::audioSpecFrequency;
-  seq.sampleSize = consts::audioSpecSamples;
-  seq.channelCount = consts::audioSpecChannels;
+  audio::Sequence<float> seq{consts::metadata};
 
   // time accumulator
   float t = 0.f;
 
-  float values[consts::audioSpecSamples];
+  float values[consts::metadata.sampleCount];
 
   for(float freq = consts::fMin; freq < consts::fMax; freq *= consts::sweepFactor) {
     for (auto&& value : values) {
@@ -42,12 +37,9 @@ Sequence<float> sweepNaive()
   return seq;
 }
 
-Sequence<float> sweepTimeAccumulator()
+audio::Sequence<float> sweepTimeAccumulator()
 {
-  Sequence<float> seq;
-  seq.sampleRate = consts::audioSpecFrequency;
-  seq.sampleSize = consts::audioSpecSamples;
-  seq.channelCount = consts::audioSpecChannels;
+  audio::Sequence<float> seq{consts::metadata};
 
   // time accumulator
   float t = 0.f;
@@ -57,7 +49,7 @@ Sequence<float> sweepTimeAccumulator()
   // inspired by https://dsp.stackexchange.com/q/971
   float phiOffset = 0.f;
 
-  float values[consts::audioSpecSamples];
+  float values[consts::metadata.sampleCount];
 
   float freq = consts::fMin;
   while (freq < consts::fMax)
@@ -84,19 +76,16 @@ Sequence<float> sweepTimeAccumulator()
   return seq;
 }
 
-Sequence<float> sweepPhaseAccumulator()
+audio::Sequence<float> sweepPhaseAccumulator()
 {
-  Sequence<float> seq;
-  seq.sampleRate = consts::audioSpecFrequency;
-  seq.sampleSize = consts::audioSpecSamples;
-  seq.channelCount = consts::audioSpecChannels;
+  audio::Sequence<float> seq{consts::metadata};
 
   // phase accumulator
   // to guarantee continuous phase and smooth audio transition
   // note: mind numeric inaccuracies depending on duration and frequency
   float phi = 0.f;
 
-  float values[consts::audioSpecSamples];
+  float values[consts::metadata.sampleCount];
 
   for(float freq = consts::fMin; freq < consts::fMax; freq *= consts::sweepFactor) {
     const auto deltaPhi = 2 * static_cast<float>(M_PI) * freq * consts::dT;
@@ -114,7 +103,7 @@ Sequence<float> sweepPhaseAccumulator()
 
 int main(int, char**)
 try {
-  AudioDevicePlayback<float> playback(consts::audioSpecFrequency, consts::audioSpecChannels, consts::audioSpecSamples);
+  audio::DevicePlayback<float> playback(consts::metadata);
 
   std::cout << "simple sweep..." << std::endl;
   playback.play(sweepNaive());

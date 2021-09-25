@@ -12,27 +12,20 @@
 //#define DEBUG_SINE_FREQUENCY 500.0F
 
 namespace consts {
-static const int audioSpecFrequency = 48000; // [Hz]
-static const uint8_t audioSpecChannels = 1;
-static const uint16_t audioSpecSamples = 4096;
-
-static const std::chrono::milliseconds recordLength(2000);
+  static const std::chrono::milliseconds recordLength(2000);
 } // namespace consts
 
-Sequence<float> sineSequence(float freq, std::chrono::seconds length)
+audio::Sequence<float> sineSequence(float freq, std::chrono::seconds length)
 {
-  Sequence<float> seq;
-  seq.sampleRate = consts::audioSpecFrequency; // [Hz]
-  seq.channelCount = consts::audioSpecChannels;
-  seq.sampleSize = consts::audioSpecSamples;
+  audio::Sequence<float> seq;
 
   // time accumulator
   float t = 0.f; // [s]
-  const float dT = 1.0F / seq.sampleRate; // [s]
+  const float dT = 1.0F / seq.metadata.sampleCount; // [s]
 
-  const auto sampleCount = seq.sampleRate * length.count() / seq.sampleSize;
+  const auto sampleCount = seq.metadata.sampleRate * length.count() / seq.metadata.sampleCount;
   for(uint32_t i = 0U; i < sampleCount; ++i) {
-    std::vector<float> values(seq.sampleSize);
+    std::vector<float> values(seq.metadata.sampleCount);
     for (auto&& value : values) {
       value = std::sin(2 * static_cast<float>(M_PI) * freq * t);
       t += dT;
@@ -43,9 +36,9 @@ Sequence<float> sineSequence(float freq, std::chrono::seconds length)
   return seq;
 }
 
-std::vector<float> fft(const Sequence<float>& seq)
+std::vector<float> fft(const audio::Sequence<float>& seq)
 {
-  const size_t halfSize = seq.sampleSize / 2;
+  const size_t halfSize = seq.metadata.sampleCount / 2;
 
   std::vector<float> ret(halfSize);
 
@@ -124,7 +117,7 @@ std::vector<float> smooth(const std::vector<float>& vec, size_t windowRadius)
   return smoothed;
 }
 
-void analyze(const std::vector<float>& spectrum)
+void analyze(const std::vector<float>& spectrum, const audio::Metadata& metadata)
 {
   // filter some minor peaks
   const auto smoothedSpectrum = smooth(spectrum, 5);
@@ -159,7 +152,7 @@ void analyze(const std::vector<float>& spectrum)
 
     // frequency calculation from spectrum position
     // inspired by https://stackoverflow.com/a/4230658
-    auto peakFreq = consts::audioSpecFrequency * peakOffset / consts::audioSpecSamples;
+    auto peakFreq = metadata.sampleRate * peakOffset / metadata.sampleCount;
 
     std::cout << "spectrum peak at " << peakFreq << "Hz" << std::endl;
   }
@@ -169,11 +162,8 @@ int main(int, char**)
 try {
   // record / generate
 #ifndef DEBUG_SINE_FREQUENCY
-  AudioDeviceCapture<float> capture(
-        consts::audioSpecFrequency,
-        consts::audioSpecChannels,
-        consts::audioSpecSamples);
-  auto seq = capture.record(consts::recordLength.count());
+  audio::DeviceCapture<float> capture;
+  auto seq = capture.record(consts::recordLength);
 #else
   auto seq = sineSequence(
         DEBUG_SINE_FREQUENCY,
@@ -182,17 +172,14 @@ try {
 #endif // DEBUG_SINE_FREQUENCY
 
   // play back
-  AudioDevicePlayback<float> play(
-        consts::audioSpecFrequency,
-        consts::audioSpecChannels,
-        consts::audioSpecSamples);
+  audio::DevicePlayback<float> play(seq.metadata);
   play.play(seq);
 
   // calculate spectrum
   const auto spectrum = fft(seq);
 
   // print spectrum characteristics
-  analyze(spectrum);
+  analyze(spectrum, seq.metadata);
 
   return EXIT_SUCCESS;
 } catch (const std::exception& e) {

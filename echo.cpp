@@ -4,19 +4,15 @@
 #include <iostream>
 
 namespace consts {
-  static const int audioSpecFrequency = 48000;
-  static const uint8_t audioSpecChannels = 1;
-  static const uint16_t audioSpecSamples = 4096;
-
   static const uint32_t recordLengthMsec = 5000;
 } // namespace consts
 
 int main(int, char**)
 try {
-  AudioDeviceCapture<float> capture(consts::audioSpecFrequency, consts::audioSpecChannels, consts::audioSpecSamples);
+  audio::DeviceCapture<float> capture;
   auto recording = capture.record(consts::recordLengthMsec);
 
-  AudioDevicePlayback<float> playback(consts::audioSpecFrequency, consts::audioSpecChannels, consts::audioSpecSamples);
+  audio::DevicePlayback<float> playback(recording.metadata);
   playback.play(std::move(recording));
 
   return EXIT_SUCCESS;

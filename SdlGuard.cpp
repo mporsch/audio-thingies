@@ -1,14 +1,16 @@
-#include "AudioGuard.h"
+#include "SdlGuard.h"
 
 #define SDL_MAIN_HANDLED
 #include "SDL2/SDL.h"
 
 #include <stdexcept> // for std::runtime_error
 
-unsigned int AudioGuard::m_instanceCount{};
-std::mutex AudioGuard::m_mtx{};
+namespace audio {
 
-AudioGuard::AudioGuard()
+unsigned int SdlGuard::m_instanceCount{};
+std::mutex SdlGuard::m_mtx{};
+
+SdlGuard::SdlGuard()
 {
   std::lock_guard<std::mutex> lock(m_mtx);
 
@@ -21,7 +23,7 @@ AudioGuard::AudioGuard()
   ++m_instanceCount;
 }
 
-AudioGuard::~AudioGuard()
+SdlGuard::~SdlGuard()
 {
   std::lock_guard<std::mutex> lock(m_mtx);
 
@@ -31,3 +33,5 @@ AudioGuard::~AudioGuard()
     SDL_Quit();
   }
 }
+
+} // namespace audio

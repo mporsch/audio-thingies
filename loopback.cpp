@@ -1,4 +1,4 @@
-#include "AudioGuard.h"
+#include "SdlGuard.h"
 
 #define SDL_MAIN_HANDLED
 #include "SDL2/SDL.h"
@@ -100,7 +100,7 @@ SDL_AudioDeviceID setupCaptureDevice(SDL_AudioDeviceID* playDeviceId)
 
 int main(int, char**)
 try {
-  AudioGuard audioGuard;
+  audio::SdlGuard SdlGuard;
 
   auto playDeviceId = setupPlayDevice();
   const auto captureDeviceId = setupCaptureDevice(&playDeviceId);

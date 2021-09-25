@@ -9,6 +9,8 @@
 #include <iostream>
 #include <stdexcept>
 
+namespace audio {
+
 namespace detail {
   static const uint8_t audioSpecSilence = 0;
   static const uint16_t audioSpecPadding = 0;
@@ -35,7 +37,7 @@ namespace detail {
     return (deviceId >= 2); // see SDL_OpenAudioDevice()
   }
 
-  inline void printAudioDevices(int isCapture)
+  inline void printDevices(int isCapture)
   {
     const int numAudioDevices = SDL_GetNumAudioDevices(isCapture);
 
@@ -80,36 +82,33 @@ std::vector<T> Sequence<T>::pop()
   return ret;
 }
 
-
 template<typename T>
 std::chrono::milliseconds Sequence<T>::length() const
 {
-  assert(sampleRate > 0);
-  return std::chrono::milliseconds((storage.size() * sampleSize) / (sampleRate / 1000));
+  assert(metadata.sampleRate > 0);
+  return std::chrono::milliseconds((storage.size() * metadata.sampleCount) / (metadata.sampleRate / 1000));
 }
 
 
 template<typename T>
-AudioDeviceCapture<T>::AudioDeviceCapture(int sampleRate,
-                                          uint8_t channelCount,
-                                          uint16_t sampleSize)
-  : seq_{sampleRate, channelCount, sampleSize, {}}
+DeviceCapture<T>::DeviceCapture(const Metadata& metadata)
+  : seq_{metadata, {}}
 {
   const SDL_AudioSpec want = {
-    sampleRate,                            /**< DSP frequency -- samples per second */
+    metadata.sampleRate,                   /**< DSP frequency -- samples per second */
     detail::FormatLookUp<T>::format,       /**< Audio data format */
-    channelCount,                          /**< Number of channels: 1 mono, 2 stereo */
+    metadata.channelCount,                 /**< Number of channels: 1 mono, 2 stereo */
     detail::audioSpecSilence,              /**< Audio buffer silence value (calculated) */
-    sampleSize,                            /**< Audio buffer size in sample FRAMES (total samples divided by channel count) */
+    metadata.sampleCount,                  /**< Audio buffer size in sample FRAMES (total samples divided by channel count) */
     detail::audioSpecPadding,              /**< Necessary for some compile environments */
     detail::audioSpecSize,                 /**< Audio buffer size in bytes (calculated) */
-    AudioDeviceCapture<T>::deviceCallback, /**< Callback that feeds the audio device (NULL to use SDL_QueueAudio()). */
+    DeviceCapture<T>::deviceCallback,      /**< Callback that feeds the audio device (NULL to use SDL_QueueAudio()). */
     this                                   /**< Userdata passed to callback (ignored for NULL callbacks). */
   };
 
   static const int isCapture = SDL_TRUE;
 
-  detail::printAudioDevices(isCapture);
+  detail::printDevices(isCapture);
 
   SDL_AudioSpec have;
   deviceId_ = SDL_OpenAudioDevice(nullptr, isCapture, &want, &have, detail::allowedAudioChange);
@@ -118,7 +117,14 @@ AudioDeviceCapture<T>::AudioDeviceCapture(int sampleRate,
 }
 
 template<typename T>
-Sequence<T> AudioDeviceCapture<T>::record(uint32_t lengthMsec)
+Sequence<T> DeviceCapture<T>::record(std::chrono::milliseconds length)
+{
+  using Msec = std::chrono::duration<uint32_t, std::milli>;
+  return record(std::chrono::duration_cast<Msec>(length).count());
+}
+
+template<typename T>
+Sequence<T> DeviceCapture<T>::record(uint32_t lengthMsec)
 {
   std::cout << "recording for " << lengthMsec << "ms ..." << std::endl;
 
@@ -129,43 +135,41 @@ Sequence<T> AudioDeviceCapture<T>::record(uint32_t lengthMsec)
 
   SDL_PauseAudioDevice(deviceId_, detail::pauseEnable);
 
-  return Sequence<T>{seq_.sampleRate, seq_.channelCount, seq_.sampleSize, std::move(seq_.storage)};
+  return Sequence<T>{seq_.metadata, std::move(seq_.storage)};
 }
 
 template<typename T>
-void AudioDeviceCapture<T>::deviceCallback(void* userdata, uint8_t* stream, int len)
+void DeviceCapture<T>::deviceCallback(void* userdata, uint8_t* stream, int len)
 {
-  auto instance = reinterpret_cast<AudioDeviceCapture<T>*>(userdata);
+  auto instance = reinterpret_cast<DeviceCapture<T>*>(userdata);
   instance->deviceCallback(stream, len);
 }
 
 template<typename T>
-void AudioDeviceCapture<T>::deviceCallback(uint8_t* stream, int len)
+void DeviceCapture<T>::deviceCallback(uint8_t* stream, int len)
 {
   seq_.push(stream, len);
 }
 
 
 template<typename T>
-AudioDevicePlayback<T>::AudioDevicePlayback(int sampleRate,
-                                            uint8_t channelCount,
-                                            uint16_t sampleSize)
+DevicePlayback<T>::DevicePlayback(const Metadata& metadata)
 {
   const SDL_AudioSpec want = {
-    sampleRate,                             /**< DSP frequency -- samples per second */
+    metadata.sampleRate,                    /**< DSP frequency -- samples per second */
     detail::FormatLookUp<T>::format,        /**< Audio data format */
-    channelCount,                           /**< Number of channels: 1 mono, 2 stereo */
+    metadata.channelCount,                  /**< Number of channels: 1 mono, 2 stereo */
     detail::audioSpecSilence,               /**< Audio buffer silence value (calculated) */
-    sampleSize,                             /**< Audio buffer size in sample FRAMES (total samples divided by channel count) */
+    metadata.sampleCount,                   /**< Audio buffer size in sample FRAMES (total samples divided by channel count) */
     detail::audioSpecPadding,               /**< Necessary for some compile environments */
     detail::audioSpecSize,                  /**< Audio buffer size in bytes (calculated) */
-    AudioDevicePlayback<T>::deviceCallback, /**< Callback that feeds the audio device (NULL to use SDL_QueueAudio()). */
+    DevicePlayback<T>::deviceCallback,      /**< Callback that feeds the audio device (NULL to use SDL_QueueAudio()). */
     this                                    /**< Userdata passed to callback (ignored for NULL callbacks). */
   };
 
   static const int isCapture = SDL_FALSE;
 
-  detail::printAudioDevices(isCapture);
+  detail::printDevices(isCapture);
 
   SDL_AudioSpec have;
   deviceId_ = SDL_OpenAudioDevice(nullptr, isCapture, &want, &have, detail::allowedAudioChange);
@@ -174,7 +178,7 @@ AudioDevicePlayback<T>::AudioDevicePlayback(int sampleRate,
 }
 
 template<typename T>
-void AudioDevicePlayback<T>::play(Sequence<T> seq)
+void DevicePlayback<T>::play(Sequence<T> seq)
 {
   seq_ = std::move(seq);
 
@@ -187,14 +191,14 @@ void AudioDevicePlayback<T>::play(Sequence<T> seq)
 }
 
 template<typename T>
-void AudioDevicePlayback<T>::deviceCallback(void* userdata, uint8_t* stream, int len)
+void DevicePlayback<T>::deviceCallback(void* userdata, uint8_t* stream, int len)
 {
-  auto instance = reinterpret_cast<AudioDevicePlayback<T>*>(userdata);
+  auto instance = reinterpret_cast<DevicePlayback<T>*>(userdata);
   instance->deviceCallback(stream, len);
 }
 
 template<typename T>
-void AudioDevicePlayback<T>::deviceCallback(uint8_t* stream, int len)
+void DevicePlayback<T>::deviceCallback(uint8_t* stream, int len)
 {
   auto samples = seq_.pop();
   if (samples.empty()) {
@@ -210,5 +214,7 @@ void AudioDevicePlayback<T>::deviceCallback(uint8_t* stream, int len)
   memcpy(stream, first, writeByteSize);
   memset(stream + writeByteSize, 0, static_cast<size_t>(len) - writeByteSize);
 }
+
+} // namespace audio
 
 #endif // AUDIO_DEVICE_IMPL_H

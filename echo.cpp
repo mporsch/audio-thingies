@@ -1,5 +1,6 @@
 #include "AudioDevice.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 
@@ -13,7 +14,17 @@ try {
   auto recording = capture.record(consts::recordLengthMsec);
 
   audio::DevicePlayback<float> playback(recording.metadata);
-  playback.play(std::move(recording));
+
+  std::cout << "forward ";
+  playback.play(recording);
+
+  for(auto&& samples : recording.storage) {
+    std::reverse(std::begin(samples), std::end(samples));
+  }
+  std::reverse(std::begin(recording.storage), std::end(recording.storage));
+
+  std::cout << "backward ";
+  playback.play(recording);
 
   return EXIT_SUCCESS;
 } catch (const std::exception& e) {

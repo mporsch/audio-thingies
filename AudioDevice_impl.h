@@ -5,7 +5,6 @@
 #error "Include via AudioDevice.h"
 #endif // AUDIO_DEVICE_H
 
-#include <cassert>
 #include <iostream>
 #include <stdexcept>
 
@@ -47,48 +46,6 @@ namespace detail {
     }
   }
 } // namespace detail
-
-template<typename T>
-void Sequence<T>::push(const uint8_t* stream, int len)
-{
-  const auto first = reinterpret_cast<const T*>(stream);
-  const auto last = reinterpret_cast<const T*>(stream + len);
-
-  push(first, last);
-}
-
-template<typename T>
-template<typename FwdIt>
-void Sequence<T>::push(FwdIt first, FwdIt last)
-{
-  storage.emplace_back(first, last);
-}
-
-template<typename T>
-void Sequence<T>::push(Samples samples)
-{
-  storage.emplace_back(std::move(samples));
-}
-
-template<typename T>
-std::vector<T> Sequence<T>::pop()
-{
-  if(storage.empty()) {
-    return {};
-  }
-
-  auto ret = std::move(storage.front());
-  storage.pop_front();
-  return ret;
-}
-
-template<typename T>
-std::chrono::milliseconds Sequence<T>::duration() const
-{
-  assert(metadata.sampleRate > 0);
-  return std::chrono::milliseconds((storage.size() * metadata.sampleCount) / (metadata.sampleRate / 1000));
-}
-
 
 template<typename T>
 DeviceCapture<T>::DeviceCapture(const Metadata& metadata)

@@ -1,6 +1,7 @@
 #ifndef AUDIO_DEVICE_H
 #define AUDIO_DEVICE_H
 
+#include "AudioSequence.h"
 #include "SdlGuard.h"
 
 #define SDL_MAIN_HANDLED
@@ -8,39 +9,8 @@
 
 #include <chrono>
 #include <cstdint>
-#include <list>
-#include <vector>
 
 namespace audio {
-
-struct Metadata
-{
-  int sampleRate = 48000; // sampling frequency [Hz]
-  uint8_t channelCount = 1; // number of channels to record in parallel (i.e. mono/stereo)
-  uint16_t sampleCount = 4096; // number of samples to capture in one group
-};
-
-template<typename T>
-struct Sequence
-{
-  using Samples = std::vector<T>;
-
-  Metadata metadata; ///< constant sequence metadata the samples were recorded with
-  std::list<Samples> storage; ///< samples in capture groups
-
-  /// enqueue sample capture group
-  void push(const uint8_t* stream, int len);
-  template<typename FwdIt>
-  void push(FwdIt first, FwdIt last);
-  void push(Samples samples);
-
-  /// get and remove front capture group
-  /// @return  filled capture group or empty if none remaining
-  std::vector<T> pop();
-
-  /// determine playback length of all samples in recording
-  std::chrono::milliseconds duration() const;
-};
 
 template<typename T>
 struct DeviceCapture

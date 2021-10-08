@@ -7,6 +7,7 @@ include_directories(${SDL2_INCLUDE_DIRS})
 
 add_library(audio STATIC
   SdlGuard.cpp
+  Algo.h
   AudioDevice.h
   AudioDevice_impl.h
   AudioSequence.h

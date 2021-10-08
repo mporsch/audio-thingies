@@ -1,3 +1,4 @@
+#include "Algo.h"
 #include "AudioDevice.h"
 
 #include "kissfft/kissfft.hh"
@@ -70,57 +71,10 @@ std::vector<float> fft(const audio::Sequence<float>& seq)
   return ret;
 }
 
-std::vector<float> smooth(const std::vector<float>& vec, size_t windowRadius)
-{
-  const auto windowSize = windowRadius * 2 + 1;
-
-  std::vector<float> smoothed(vec.size());
-
-  if(windowSize < vec.size()) {
-    struct Window
-    {
-      size_t front;
-      size_t mid;
-      size_t back;
-      size_t count;
-      float sum;
-    } window = {};
-
-    // preload
-    for(; window.back < windowRadius; ++window.back) {
-      window.sum += vec[window.back];
-      ++window.count;
-    }
-    // front half window
-    for(; window.back < windowSize; ++window.mid, ++window.back) {
-      window.sum += vec[window.back];
-      ++window.count;
-      smoothed[window.mid] = window.sum / window.count;
-    }
-    // whole window
-    for(; window.back < vec.size(); ++window.front, ++window.mid, ++window.back) {
-      window.sum -= vec[window.front];
-      window.sum += vec[window.back];
-      smoothed[window.mid] = window.sum / window.count;
-    }
-    // back half window
-    for(; window.mid < vec.size(); ++window.front, ++window.mid) {
-      window.sum -= vec[window.front];
-      --window.count;
-      smoothed[window.mid] = window.sum / window.count;
-    }
-    // unload (omitted)
-  } else {
-    assert(false); // TODO
-  }
-
-  return smoothed;
-}
-
 void analyze(const std::vector<float>& spectrum, const audio::Metadata& metadata)
 {
   // filter some minor peaks
-  const auto smoothedSpectrum = smooth(spectrum, 5);
+  const auto smoothedSpectrum = audio::smooth(spectrum, 5);
 
   static const float thresh = 10.f;
 

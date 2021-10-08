@@ -1,3 +1,4 @@
+#include "Algo.h"
 #include "AudioDevice.h"
 
 #include <algorithm>
@@ -18,13 +19,27 @@ try {
   std::cout << "forward ";
   playback.play(recording);
 
-  for(auto&& samples : recording.storage) {
+  std::cout << "complete backward ";
+  auto completeBackward = recording;
+  for(auto&& samples : completeBackward.storage) {
     std::reverse(std::begin(samples), std::end(samples));
   }
-  std::reverse(std::begin(recording.storage), std::end(recording.storage));
+  std::reverse(std::begin(completeBackward.storage), std::end(completeBackward.storage));
+  playback.play(completeBackward);
 
-  std::cout << "backward ";
-  playback.play(recording);
+  std::cout << "sample-wise backward (smoothed) ";
+  auto samplewiseBackward = recording;
+  for(auto&& samples : samplewiseBackward.storage) {
+    std::reverse(std::begin(samples), std::end(samples));
+  }
+  samplewiseBackward = audio::smooth(samplewiseBackward, 20);
+  playback.play(samplewiseBackward);
+
+  std::cout << "group-wise backward (smoothed) ";
+  auto&& groupwiseBackward = recording;
+  std::reverse(std::begin(groupwiseBackward.storage), std::end(groupwiseBackward.storage));
+  groupwiseBackward = audio::smooth(groupwiseBackward, 20);
+  playback.play(groupwiseBackward);
 
   return EXIT_SUCCESS;
 } catch (const std::exception& e) {
